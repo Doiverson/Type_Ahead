@@ -1,27 +1,48 @@
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import Moon from './connection/Moon';
+import Loading from './CircularLoading';
 
 const moon = new Moon();
 
 export default class InputDropdown extends Component{
 
-    state = {
-        prov : [
-            "",
-            "Alberta",
-            "British Columbia",
-            "Manitoba",
-            "Nova Scotia",
-            "New Brunswick",
-            "Newfoundland and Labrador",
-            "Ontario",
-            "Prince Edward Island",
-            "Quebec",
-            "Saskatchewan",
-        ],
-        areaList: [],
-        items: []
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            prov: [],
+            selectedId: [],
+            areaList: [],
+            items: [],
+            isLoading: false
+        }
+
+        this.onChange = this.onChange.bind(this);
+    }
+
+    componentDidMount() {
+        moon
+            .get('api/area/all')
+            .then(res =>{
+
+                let provArray = [];
+
+                for(let i = 0; i < res.data.length; i++) {
+                    let obj = {};
+                    obj['id'] = res.data[i]._id;
+                    obj['name'] = res.data[i].name;
+                    provArray.push(obj);
+                }
+
+                this.setState({
+                    prov: provArray });
+
+            })
+            .catch(err => {
+                this.disabledInput();
+                console.log(JSON.stringify(err));
+            })
     }
 
     disabledInput = () => {
@@ -30,26 +51,35 @@ export default class InputDropdown extends Component{
     };
 
 
-    onChange = (e) => {
+    onChange(e){
 
-        //
+        this.setState({isLoading:true})
+
         e.persist();
 
-        moon
-            .get(`api/area/search/areaname/${e.target.value}`)
-            .then(res =>{
-                for(let i = 0; i < res.data.length; i++) {
-                    // console.log(res.data[i].name);
-                    this.setState({ areaList: this.state.areaList.concat([res.data[i].city])});
-                    console.log(this.state.areaList);
-                }
+        this.state.prov.forEach(prov => {
 
-            })
-            .catch(err => {
-                console.log("ERROR");
-                this.disabledInput();
-                console.log(JSON.stringify(err));
-            })
+            if(prov.name === e.target.value ){
+
+                moon
+                    .get(`api/area/search/citylist/byareaid/${prov.id}`)
+                    .then(res =>{
+                        this.setState({isLoading:false})
+                        for(let i = 0; i < res.data.length; i++) {
+                            this.setState({ areaList: this.state.areaList.concat([res.data[i].city])});
+                        }
+
+                    })
+                    .catch(err => {
+                        this.disabledInput();
+                        this.setState({isLoading:false})
+                        console.log(JSON.stringify(err));
+                    })
+            } else return 0;
+
+        })
+
+
     };
 
     filterList = (e) => {
@@ -57,19 +87,19 @@ export default class InputDropdown extends Component{
             return item.toLowerCase().search( e.target.value.toLowerCase()) !== -1;
         })
         this.setState({items: updateList})
-    }
+    };
 
 
     render() {
         return (
             <div>
+                <Loading isLoading={this.state.isLoading} />
                 <select
                     id="errCatch"
-                    value={this.state.inputProv}
                     onChange={this.onChange}
                     className="input__city-item">{
                     this.state.prov.map((prov, index) =>
-                        <option key={index} name="areaList">{prov}</option>)}
+                        <option key={index} name="areaList">{prov.name}</option>)}
                 </select>
 
                 <input id="errCatch" ref="test" className="input__city-item"　onChange={this.filterList} />
