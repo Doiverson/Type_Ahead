@@ -65,9 +65,15 @@ export default class InputDropdown extends Component{
                     .get(`api/area/search/citylist/byareaid/${prov.id}`)
                     .then(res =>{
                         this.setState({isLoading:false})
-                        for(let i = 0; i < res.data.length; i++) {
-                            this.setState({ areaList: this.state.areaList.concat([res.data[i].city])});
-                        }
+                        // this.state.areaList.push(res.city);
+                        // console.log(this.state.areaList);
+
+                        let arrayCity = [];
+                        res.data.map( eachCity => {
+                                return arrayCity.push(eachCity.city);
+                        });
+
+                        this.setState({areaList:arrayCity});
 
                     })
                     .catch(err => {
@@ -75,7 +81,7 @@ export default class InputDropdown extends Component{
                         this.setState({isLoading:false})
                         console.log(JSON.stringify(err));
                     })
-            } else return 0;
+            } else return 0
 
         })
 
@@ -97,7 +103,9 @@ export default class InputDropdown extends Component{
                 <select
                     id="errCatch"
                     onChange={this.onChange}
-                    className="input__city-item">{
+                    className="input__city-item">
+                    <option value=''> </option>
+                    {
                     this.state.prov.map((prov, index) =>
                         <option key={index} name="areaList">{prov.name}</option>)}
                 </select>
